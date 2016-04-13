@@ -1,0 +1,13 @@
+---
+
+# Webroot
+root: "/var/www/html/nginx"
+
+# The mysqldatabase
+db_name: "mycms"
+db_user: "cmsadmin"
+db_password: "iplusaha"
+
+# Your application name.
+application_name: "app1"
+project_name: "app2"

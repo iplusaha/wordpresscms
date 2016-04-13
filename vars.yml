@@ -1,0 +1,8 @@
+---
+
+# The mysqldatabase
+db_name: "mycms"
+db_user: "cmsadmin"
+db_password: "iplusaha"
+
+

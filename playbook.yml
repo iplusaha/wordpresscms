@@ -1,0 +1,81 @@
+---
+- hosts: localhost
+  sudo: yes
+
+  vars_files:
+    - vars.yml
+
+  pre_tasks:
+    - name: Update apt cache if needed.
+      apt: update_cache=yes cache_valid_time=3600
+
+  handlers:
+    - name: restart apache2
+      service: name=apache2 state=restarted
+
+  tasks:
+      
+    - name: "Get software for apt repository management"
+      apt: "name={{ item }} state=present"
+      with_items:
+        - apache2
+        - mysql-server
+        - php5
+        - php5-common
+        - php5-mysql
+        - php5-cli
+        - php5-curl
+        - php5-gd
+        - php5-dev
+        - php5-mcrypt
+        - php5-gd
+        - libssh2-php
+        - python-mysqldb
+        
+
+    - name: Create MySQL Database
+      mysql_db: db={{ db_name }} state=present
+
+    - name: Ensure users has access to database
+      mysql_user: >
+        name={{ db_user }}
+        password={{ db_password }}
+        priv={{ db_name }}.*:ALL
+        host=localhost
+
+    - name: Download WordPress  
+      get_url: 
+        url=https://wordpress.org/latest.tar.gz 
+        dest=/home/wordpress.tar.gz
+        validate_certs=no
+
+    - name: Extract WordPress  
+      unarchive: 
+        src=/home/wordpress.tar.gz 
+        dest=/var/www/ 
+        copy=no
+      sudo: yes
+
+    - name: Update default Apache site
+      sudo: yes
+      lineinfile: 
+        dest=/etc/apache2/sites-enabled/000-default.conf 
+        regexp="(.)+DocumentRoot /var/www/html"
+        line="DocumentRoot /var/www/wordpress"
+      notify:
+        - restart apache
+
+    - name: Copy sample config file
+      command: mv /var/www/wordpress/wp-config-sample.php /var/www/wordpress/wp-config.php creates=/var/www/wordpress/wp-config.php
+      sudo: yes
+
+    - name: Update WordPress config file
+      lineinfile:
+        dest=/var/www/wordpress/wp-config.php
+        regexp="{{ item.regexp }}"
+        line="{{ item.line }}"
+      with_items:
+        - {'regexp': "define\\('DB_NAME', '(.)+'\\);", 'line': "define('DB_NAME', '{{db_name}}');"}        
+        - {'regexp': "define\\('DB_USER', '(.)+'\\);", 'line': "define('DB_USER', '{{db_user}}');"}        
+        - {'regexp': "define\\('DB_PASSWORD', '(.)+'\\);", 'line': "define('DB_PASSWORD', '{{db_password}}');"}
+      sudo: yes  
